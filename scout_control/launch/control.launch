@@ -1,0 +1,11 @@
+<launch>
+
+  <arg name="enable_odom_tf" default="true"/>
+
+  <rosparam command="load" file="$(find scout_control)/config/control.yaml"/>
+
+  <param name="/scout_velocity_controller/enable_odom_tf" value="$(arg enable_odom_tf)"/>
+
+  <node name="controller_spawner" pkg="controller_manager" type="spawner" args="scout_joint_publisher scout_velocity_controller"/>
+
+</launch>

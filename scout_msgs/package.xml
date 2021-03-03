@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package>
+  <name>scout_msgs</name>
+  <version>0.1.0</version>
+  <description>Messages for AgileX Scout</description>
+
+  <author email="lei.yan@iquotient-robot.com">QuartzYan</author>
+  <maintainer email="lei.yan@iquotient-robot.com">QuartzYan</maintainer>
+
+  <!-- LICENSE -->
+  <license>MIT</license>
+
+  <!-- DEPEND -->
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>message_generation</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <run_depend>message_runtime</run_depend>
+  <run_depend>std_msgs</run_depend>
+
+  <export>
+  </export>
+</package>
