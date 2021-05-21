@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="enable_odom_tf" default="true"/>
+  <arg name="enable_odom_tf" default="false"/>
 
   <rosparam command="load" file="$(find scout_control)/config/control.yaml"/>
 

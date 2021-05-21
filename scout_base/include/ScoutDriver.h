@@ -40,7 +40,7 @@
 
 #define MAX_X_SPEED   1.5
 #define MAX_TH_SPEED  0.5235
-#define WHEEL_RADIUS  0.32918
+#define WHEEL_RADIUS  0.16459
 #define WHEEL_BASE    0.498
 
 #define SCOUT_CMD_BUF_LEN    32

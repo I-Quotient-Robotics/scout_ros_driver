@@ -120,10 +120,10 @@ namespace scout_base
       return;
     last_time = now_time;
 
-    joints_[0].velocity = (msg.motor_states[1].rpm / 1920.0) * 3.1415926; //front_left_wheel
-    joints_[1].velocity = (msg.motor_states[0].rpm / 1920.0) * 3.1415926; //front_right_wheel
-    joints_[2].velocity = (msg.motor_states[2].rpm / 1920.0) * 3.1415926; //rear_left_wheel
-    joints_[3].velocity = (msg.motor_states[3].rpm / 1920.0) * 3.1415926; //rear_right_wheel
+    joints_[0].velocity = (msg.motor_states[1].rpm / 1920.0) * 3.1415926 * 2; //front_left_wheel
+    joints_[1].velocity = (msg.motor_states[0].rpm / 1920.0) * 3.1415926 * 2; //front_right_wheel
+    joints_[2].velocity = (msg.motor_states[2].rpm / 1920.0) * 3.1415926 * 2; //rear_left_wheel
+    joints_[3].velocity = (msg.motor_states[3].rpm / 1920.0) * 3.1415926 * 2; //rear_right_wheel
 
     joints_[0].position += joints_[0].velocity*dt;
     joints_[1].position += joints_[1].velocity*dt;
