@@ -87,8 +87,24 @@ bool ScoutDriver::setSpeed(const float &vx, const float &vth)
 
   sendBuf[5] = 0x02;  // control mode
   sendBuf[6] = 0x00;  // clear error
-  sendBuf[7] = int8_t((vx / MAX_X_SPEED)*100.0f);  // x speed %
-  sendBuf[8] = int8_t((vth / MAX_TH_SPEED)*100.0f);  // th speed %
+  if(abs(vx) > MAX_X_SPEED)
+  {
+    sendBuf[7] = int8_t(100 * (vx / abs(vx)));
+  }
+  else
+  {
+    sendBuf[7] = int8_t((vx / MAX_X_SPEED)*100.0f);  // x speed %
+  }
+  if(abs(vth) > MAX_TH_SPEED)
+  {
+    sendBuf[8] = int8_t(100 * (vth / abs(vth)));
+  }
+  else
+  {
+    sendBuf[8] = int8_t((vth / MAX_TH_SPEED)*100.0f);  // th speed %
+  }
+  //sendBuf[7] = int8_t((vx / MAX_X_SPEED)*100.0f);  // x speed %
+  //sendBuf[8] = int8_t((vth / MAX_TH_SPEED)*100.0f);  // th speed %
   sendBuf[9] = 0x00;  // null
   sendBuf[10] = 0x00;  // null
 

@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+
+<launch>
+  <arg name="scout_port" default="/dev/scout_base"/>
+  <arg name="pub_description" default="true"/>
+  <arg name="enable_ekf" default="false"/>
+
+  <group if="$(arg pub_description)">
+    <arg name="model" default="$(find xacro)/xacro --inorder $(find scout_description)/urdf/scout_v2.xacro"/>
+    <param name="robot_description" command="$(arg model)"/>
+    <!-- <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"/> -->
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+  </group>
+
+  <!-- SCOUT harware driver -->
+  <node pkg="scout_base" type="scout_base_node_without_control" name="scout_base_without_control" output="screen">
+    <param name="scout_com" value="$(arg scout_port)"/>
+    <param name="enable_odom_tf" value="true" unless="$(arg enable_ekf)"/>
+    <remap from="cmd_vel" to="/scout_velocity_controller/cmd_vel"/>
+    <remap from="odom" to="/scout_velocity_controller/odom"/>
+  </node>
+
+  <!-- joy control -->
+  <include file="$(find iqr_teleop)/launch/joy_teleop.launch"/>
+
+  <!-- Robot pose ekf -->
+  <group if="$(arg enable_ekf)">
+    <node pkg="robot_pose_ekf" type="robot_pose_ekf" name="robot_pose_ekf" output="screen">
+      <param name="output_frame" value="odom"/>
+      <param name="base_footprint_frame" value="base_footprint"/>
+      <param name="freq" value="50.0"/>
+      <param name="sensor_timeout" value="1.0"/>
+      <param name="odom_used" value="true"/>
+      <param name="imu_used" value="true"/>
+      <param name="vo_used" value="false"/>
+      <param name="debug" value="false"/>
+      <param name="self_diagnose" value="false"/>
+      <remap from="imu_data" to="/imu/data"/>
+      <remap from="odom" to="/scout_velocity_controller/odom"/>
+    </node>
+  </group>
+  
+</launch>
