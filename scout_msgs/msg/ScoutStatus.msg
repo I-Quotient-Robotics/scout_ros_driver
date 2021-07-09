@@ -11,19 +11,26 @@ int8 LIGHT_ID_REAR = 1
 # base state
 uint8 base_state
 uint8 control_mode
-uint8 fault_code
+uint8 error_code
 float64 battery_voltage
 
 float32 vx
 float32 vth
 
-# light state
-bool light_control_enabled
-ScoutLightState front_light_state
-ScoutLightState rear_light_state
+
+# driver state
+ScoutDriverState[4] driver_states
+
+ScoutLightState light_state
+
+ScoutOdom odom
+
+ScoutVersion version
+
+ScoutTeleop teleop
+
+ScoutBMS bms
+
 
 # motor state
 ScoutMotorState[4] motor_states
-
-# driver state
-# ScoutDriverState[4] driver_states

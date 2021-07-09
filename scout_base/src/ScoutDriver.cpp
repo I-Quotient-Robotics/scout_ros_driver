@@ -50,8 +50,9 @@ ScoutDriver::ScoutDriver(const std::string &portName)
 
   std::cout << "open serial port:" << portName << " successful!!"<< std::endl;
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  //set serial enable model
+  setSerialEnable();
   //start thread
   start();
 }
@@ -63,53 +64,75 @@ ScoutDriver::~ScoutDriver()
   com_.close();
 }
 
-bool ScoutDriver::setSpeed(const float &vx, const float &vth)
+bool ScoutDriver::setSerialEnable()
 {
   std::lock_guard<std::mutex> lck(mtx_);
-
-  if (!com_.isOpen())
+  if (!checkSerial())
   {
-    std::cout << "serial not open!!" << std::endl;
     return false;
   }
 
-  com_.flushOutput();
+  static uint8_t frame_id = 0x00;
+  uint8_t sendBuf[SCOUT_CMD_BUF_LEN] = {
+    0,
+  };
 
+  sendBuf[0] = SOF_HEAD_1;  // SOF 1
+  sendBuf[1] = SOF_HEAD_2;  // SOF 2
+  sendBuf[2] = 0x05;        // frame_len
+  sendBuf[3] = 0x55;        // CMD_TYPE
+  sendBuf[4] = 0x02;        // CMD_ID
+  sendBuf[5] = 0x02;        // 0x02 enable serial
+  sendBuf[6] = frame_id;    // frame_id
+  sendBuf[7] = checkSum(sendBuf, 12);  // check_sum
+  
+  size_t bufLen = sendBuf[2] + 3;
+  size_t writeLen = com_.write(sendBuf, bufLen);
+  if (bufLen != writeLen)
+  {
+    std::cout << "Failed to send message!!" << std::endl;
+    com_.flushOutput();
+    return false;
+  }
+  frame_id++;
+  return true;
+}
+
+bool ScoutDriver::setSpeed(const float &vx, const float &vth)
+{
+  std::lock_guard<std::mutex> lck(mtx_);
+  if (!checkSerial())
+  {
+    return false;
+  }
+
+  static uint8_t frame_id = 0x00;
   uint8_t sendBuf[SCOUT_CMD_BUF_LEN] = {
       0,
   };
 
-  sendBuf[0] = 0x5a;  // SOF 1
-  sendBuf[1] = 0xa5;  // SOF 2
-  sendBuf[2] = 0x0a;  // frame_len
-  sendBuf[3] = 0x55;  // CMD_TYPE
-  sendBuf[4] = 0x01;  // CMD_ID
+  sendBuf[0] = SOF_HEAD_1;  // SOF 1
+  sendBuf[1] = SOF_HEAD_2;  // SOF 2
+  sendBuf[2] = 0x0a;        // frame_len
+  sendBuf[3] = 0x55;        // CMD_TYPE
+  sendBuf[4] = 0x01;        // CMD_ID
 
-  sendBuf[5] = 0x02;  // control mode
-  sendBuf[6] = 0x00;  // clear error
-  if(abs(vx) > MAX_X_SPEED)
-  {
-    sendBuf[7] = int8_t(100 * (vx / abs(vx)));
-  }
-  else
-  {
-    sendBuf[7] = int8_t((vx / MAX_X_SPEED)*100.0f);  // x speed %
-  }
-  if(abs(vth) > MAX_TH_SPEED)
-  {
-    sendBuf[8] = int8_t(100 * (vth / abs(vth)));
-  }
-  else
-  {
-    sendBuf[8] = int8_t((vth / MAX_TH_SPEED)*100.0f);  // th speed %
-  }
-  //sendBuf[7] = int8_t((vx / MAX_X_SPEED)*100.0f);  // x speed %
-  //sendBuf[8] = int8_t((vth / MAX_TH_SPEED)*100.0f);  // th speed %
-  sendBuf[9] = 0x00;  // null
-  sendBuf[10] = 0x00;  // null
+  int16_t vx_mm = int16_t(vx * 1000.0);     // mm/s
+  int16_t vth_mrad = int16_t(vth * 1000.0); // 0.001rad/s
 
-  sendBuf[11] = 0x00;  // frame_id
-  sendBuf[12] = checkSum(sendBuf, 12);  // check_sum
+  //std::cout << vth_mrad << std::endl;
+  
+  sendBuf[5] = uint8_t((vx_mm & 0xff00) >> 8);
+  sendBuf[6] = uint8_t(vx_mm & 0x00ff);
+
+  sendBuf[7] = uint8_t((vth_mrad & 0xff00) >> 8);
+  sendBuf[8] = uint8_t(vth_mrad & 0x00ff);
+
+  sendBuf[9] = 0x00;
+  sendBuf[10] = 0x00;
+
+  sendBuf[11] = frame_id;                 // frame_id
+  sendBuf[12] = checkSum(sendBuf, 12);    // check_sum
 
   size_t bufLen = sendBuf[2] + 3;
   size_t writeLen = com_.write(sendBuf, bufLen);
@@ -119,40 +142,37 @@ bool ScoutDriver::setSpeed(const float &vx, const float &vth)
     com_.flushOutput();
     return false;
   }
-
+  frame_id++;
   return true;
 }
   
-bool ScoutDriver::setLightMode(LIGHT_MODE front_mode, uint8_t front_custom_value, LIGHT_MODE rear_mode, uint8_t rear_custom_value)
+bool ScoutDriver::setLightMode(uint8_t front_mode, uint8_t front_custom_value, uint8_t rear_mode, uint8_t rear_custom_value)
 {
   std::lock_guard<std::mutex> lck(mtx_);
-
-  if (!com_.isOpen())
+  if (!checkSerial())
   {
-    std::cout << "serial not open!!" << std::endl;
     return false;
   }
 
-  com_.flushOutput();
-
+  static uint8_t frame_id = 0x00;
   uint8_t sendBuf[SCOUT_CMD_BUF_LEN] = {
       0,
   };
 
-  sendBuf[0] = 0x5a;  // SOF 1
-  sendBuf[1] = 0xa5;  // SOF 2
-  sendBuf[2] = 0x0a;  // frame_len
-  sendBuf[3] = 0x55;  // CMD_TYPE
-  sendBuf[4] = 0x02;  // CMD_ID
+  sendBuf[0] = SOF_HEAD_1;  // SOF 1
+  sendBuf[1] = SOF_HEAD_2;  // SOF 2
+  sendBuf[2] = 0x0a;        // frame_len
+  sendBuf[3] = 0x55;        // CMD_TYPE
+  sendBuf[4] = 0x04;        // CMD_ID
 
-  sendBuf[5] = 0x01;  // light control enable
+  sendBuf[5] = 0x01;                // light control enable
   sendBuf[6] = front_mode;          // front light mode
   sendBuf[7] = front_custom_value;  // front light custom velue
   sendBuf[8] = rear_mode;           // rear light mode
   sendBuf[9] = rear_custom_value;   // rear light custom velue
-  sendBuf[10] = 0x00;  // null
+  sendBuf[10] = 0x00;               // null
 
-  sendBuf[11] = 0x00;  // frame_id
+  sendBuf[11] = frame_id;               // frame_id
   sendBuf[12] = checkSum(sendBuf, 12);  // check_sum
 
   size_t bufLen = sendBuf[2] + 3;
@@ -163,7 +183,7 @@ bool ScoutDriver::setLightMode(LIGHT_MODE front_mode, uint8_t front_custom_value
     com_.flushOutput();
     return false;
   }
-
+  frame_id++;
   return true;
 }
 
@@ -190,7 +210,7 @@ void ScoutDriver::run()
           scout_status.base_state = RcvData[1];
           scout_status.control_mode = RcvData[2];
           scout_status.battery_voltage = float(uint16_t((RcvData[3] << 8) | RcvData[4]) / 10.0);
-          scout_status.fault_code = uint16_t((RcvData[5] << 8) | RcvData[6]);
+          scout_status.error_code = RcvData[5];
           break;
         case 0x02:              //scout cmd msg return msg
           scout_status.vx = float(int16_t((RcvData[1] << 8) | RcvData[2]) / 1000.0);
@@ -198,40 +218,95 @@ void ScoutDriver::run()
           break;
         case 0x03:              //scout motor 1 state return msg, right
           scout_status.motor_states[0].id = 0x01;
-          scout_status.motor_states[0].current = float(uint16_t((RcvData[1] << 8) | RcvData[2]) / 10.0);
-          scout_status.motor_states[0].rpm = int16_t((RcvData[3] << 8) | RcvData[4]);
-          scout_status.motor_states[0].temperature = int8_t(RcvData[5]);
-          scout_status.motor_states[0].motor_pose += ((scout_status.motor_states[0].rpm / 1920.0)*0.031415926);
+          scout_status.motor_states[0].rpm = float(int16_t((RcvData[1] << 8) | RcvData[2]) * -1.0);
+          scout_status.motor_states[0].current = float(uint16_t((RcvData[3] << 8) | RcvData[4]) / 10.0);
+          scout_status.motor_states[0].encoder = -int32_t((RcvData[5] << 24) | (RcvData[6] << 16) | (RcvData[7] << 8) | RcvData[8]);
+          scout_status.motor_states[0].motor_pose = double(scout_status.motor_states[0].encoder / (ENCODER_LINES * REDUCTION_RATIO)) * 2 * 3.1415926;
           break;
         case 0x04:              //scout motor 2 state return msg, left
           scout_status.motor_states[1].id = 0x02;
-          scout_status.motor_states[1].current = float(uint16_t((RcvData[1] << 8) | RcvData[2]) / 10.0);
-          scout_status.motor_states[1].rpm = -int16_t((RcvData[3] << 8) | RcvData[4]);
-          scout_status.motor_states[1].temperature = int8_t(RcvData[5]);
-          scout_status.motor_states[1].motor_pose += ((scout_status.motor_states[1].rpm / 1920.0)*0.031415926);
+          scout_status.motor_states[1].rpm = float(int16_t((RcvData[1] << 8) | RcvData[2]) * -1.0);
+          scout_status.motor_states[1].current = float(uint16_t((RcvData[3] << 8) | RcvData[4]) / 10.0);
+          scout_status.motor_states[1].encoder = -int32_t((RcvData[5] << 24) | (RcvData[6] << 16) | (RcvData[7] << 8) | RcvData[8]);
+          scout_status.motor_states[1].motor_pose = double(scout_status.motor_states[1].encoder / (ENCODER_LINES * REDUCTION_RATIO)) * 2 * 3.1415926;
           break;
         case 0x05:              //scout motor 3 state return msg, left
           scout_status.motor_states[2].id = 0x03;
-          scout_status.motor_states[2].current = float(uint16_t((RcvData[1] << 8) | RcvData[2]) / 10.0);
-          scout_status.motor_states[2].rpm = -int16_t((RcvData[3] << 8) | RcvData[4]);
-          scout_status.motor_states[2].temperature = int8_t(RcvData[5]);
-          scout_status.motor_states[2].motor_pose += ((scout_status.motor_states[2].rpm / 1920.0)*0.031415926);
+          scout_status.motor_states[2].rpm = float(int16_t((RcvData[1] << 8) | RcvData[2]));
+          scout_status.motor_states[2].current = float(uint16_t((RcvData[3] << 8) | RcvData[4]) / 10.0);
+          scout_status.motor_states[2].encoder = int32_t((RcvData[5] << 24) | (RcvData[6] << 16) | (RcvData[7] << 8) | RcvData[8]);
+          scout_status.motor_states[2].motor_pose = double(scout_status.motor_states[2].encoder / (ENCODER_LINES * REDUCTION_RATIO)) * 2 * 3.1415926;
           break;
         case 0x06:              //scout motor 4 state return msg, right
           scout_status.motor_states[3].id = 0x04;
-          scout_status.motor_states[3].current = float(uint16_t((RcvData[1] << 8) | RcvData[2]) / 10.0);
-          scout_status.motor_states[3].rpm = int16_t((RcvData[3] << 8) | RcvData[4]);
-          scout_status.motor_states[3].temperature = int8_t(RcvData[5]);
-          scout_status.motor_states[3].motor_pose += ((scout_status.motor_states[3].rpm / 1920.0)*0.031415926);
+          scout_status.motor_states[3].rpm = float(int16_t((RcvData[1] << 8) | RcvData[2]));
+          scout_status.motor_states[3].current = float(uint16_t((RcvData[3] << 8) | RcvData[4]) / 10.0);
+          scout_status.motor_states[3].encoder = int32_t((RcvData[5] << 24) | (RcvData[6] << 16) | (RcvData[7] << 8) | RcvData[8]);
+          scout_status.motor_states[3].motor_pose = double(scout_status.motor_states[3].encoder / (ENCODER_LINES * REDUCTION_RATIO)) * 2 * 3.1415926;
           break;
-        case 0x07:              //scout lightr cmd msg return msg
-          scout_status.light_control_enabled = (RcvData[1]) ? true : false;
-          scout_status.front_light_state.mode =  RcvData[2];
-          scout_status.front_light_state.custom_value = RcvData[3];
-          scout_status.rear_light_state.mode =  RcvData[4];
-          scout_status.rear_light_state.custom_value = RcvData[5];
+        case 0x07:              //scout motor 1 state return msg
+          scout_status.driver_states[0].id = 0x01;
+          scout_status.driver_states[0].driver_voltage = float(uint16_t((RcvData[1] << 8) | RcvData[2]) / 10.0);
+          scout_status.driver_states[0].driver_temperature = float(uint16_t((RcvData[3] << 8) | RcvData[4]));
+          scout_status.driver_states[0].motor_temperature = RcvData[5];
+          scout_status.driver_states[0].driver_state = RcvData[6];
           break;
-
+        case 0x08:              //scout motor 2 state return msg
+          scout_status.driver_states[1].id = 0x02;
+          scout_status.driver_states[1].driver_voltage = float(uint16_t((RcvData[1] << 8) | RcvData[2]) / 10.0);
+          scout_status.driver_states[1].driver_temperature = float(uint16_t((RcvData[3] << 8) | RcvData[4]));
+          scout_status.driver_states[1].motor_temperature = RcvData[5];
+          scout_status.driver_states[1].driver_state = RcvData[6];
+          break;
+        case 0x09:              //scout motor 3 state return msg
+          scout_status.driver_states[2].id = 0x03;
+          scout_status.driver_states[2].driver_voltage = float(uint16_t((RcvData[1] << 8) | RcvData[2]) / 10.0);
+          scout_status.driver_states[2].driver_temperature = float(uint16_t((RcvData[3] << 8) | RcvData[4]));
+          scout_status.driver_states[2].motor_temperature = RcvData[5];
+          scout_status.driver_states[2].driver_state = RcvData[6];
+          break;
+        case 0x0a:              //scout motor 4 state return msg
+          scout_status.driver_states[3].id = 0x04;
+          scout_status.driver_states[3].driver_voltage = float(uint16_t((RcvData[1] << 8) | RcvData[2]) / 10.0);
+          scout_status.driver_states[3].driver_temperature = float(uint16_t((RcvData[3] << 8) | RcvData[4]));
+          scout_status.driver_states[3].motor_temperature = RcvData[5];
+          scout_status.driver_states[3].driver_state = RcvData[6];
+          break;
+        case 0xa1:              //scout light state
+          scout_status.light_state.enable = (RcvData[1]) ? true : false;
+          scout_status.light_state.front_light_mode = RcvData[2];
+          scout_status.light_state.front_light_brightness = RcvData[3];
+          scout_status.light_state.rear_light_mode = RcvData[4];
+          scout_status.light_state.rear_light_brightness = RcvData[5];
+          break;
+        case 0xa2:              //scout odom
+          scout_status.odom.left_odom = float(int32_t((RcvData[1] << 24) | (RcvData[2] << 16) | (RcvData[3] << 8) | RcvData[4]) / 1000.0);
+          scout_status.odom.right_odom = float(int32_t((RcvData[5] << 24) | (RcvData[6] << 16) | (RcvData[7] << 8) | RcvData[8]) / 1000.0);
+          break;
+        case 0xa3:              //scout version
+          scout_status.version.controller_hw_version = str(boost::format("v%1%.%2%") % int(RcvData[1]) % int(RcvData[2]));
+          scout_status.version.driver_hw_version = str(boost::format("v%1%.%2%") % int(RcvData[3]) % int(RcvData[4]));
+          scout_status.version.controller_sw_version = str(boost::format("v%1%.%2%") % int(RcvData[5]) % int(RcvData[6]));
+          scout_status.version.driver_sw_version = str(boost::format("v%1%.%2%") % int(RcvData[7]) % int(RcvData[8]));
+          break;
+        case 0xa4:              //scout teleop
+          scout_status.teleop.swa = uint8_t(RcvData[1] & 0b00000011);
+          scout_status.teleop.swb = uint8_t((RcvData[1] & 0b00001100) >> 2);
+          scout_status.teleop.swc = uint8_t((RcvData[1] & 0b00110000) >> 4);
+          scout_status.teleop.swd = uint8_t((RcvData[1] & 0b11000000) >> 6);
+          scout_status.teleop.right_rl_axis = float(int8_t(RcvData[2]) / 100.0);
+          scout_status.teleop.right_ud_axis = float(int8_t(RcvData[3]) / 100.0);
+          scout_status.teleop.left_ud_axis = float(int8_t(RcvData[4]) / 100.0);
+          scout_status.teleop.left_rl_axis = float(int8_t(RcvData[5]) / 100.0);
+          scout_status.teleop.left_vra = float(int8_t(RcvData[6]) / 100.0);
+          break;
+        case 0xa5:              //scout bms
+          scout_status.bms.soc = RcvData[1];
+          scout_status.bms.soh = RcvData[2];
+          scout_status.bms.voltage = float(uint16_t((RcvData[3] << 8) | RcvData[4]) / 10.0);
+          scout_status.bms.current = float(int16_t((RcvData[5] << 8) | RcvData[6]) / 10.0);
+          scout_status.bms.temperature = float(int16_t((RcvData[7] << 8) | RcvData[8]) / 10.0);
+          break;                                                  
         default:
           std::cout << "cmd type error!" << std::endl;
           break;
@@ -304,7 +379,7 @@ bool ScoutDriver::readFrame(const uint8_t data)
   return false;
 }
 
-inline void ScoutDriver::stop()
+void ScoutDriver::stop()
 {
   std::lock_guard<std::mutex> lck(mtx_);
   readFlage_ = false;
@@ -319,4 +394,16 @@ uint8_t ScoutDriver::checkSum(uint8_t *data, uint8_t len)
     checksum += data[i];
   }
   return checksum;
+}
+
+bool ScoutDriver::checkSerial()
+{
+  if (!com_.isOpen())
+  {
+    std::cout << "serial not open!!" << std::endl;
+    return false;
+  }
+
+  com_.flushOutput();
+  return true;
 }

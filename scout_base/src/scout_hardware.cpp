@@ -68,40 +68,67 @@ namespace scout_base
   // Pull latest speed and travel measurements from MCU, and store in joint structure for ros_control
   void ScoutHardware::updateJointsFromHardware()
   {
-    // std::cout << joints_[0].velocity_command << std::endl;
-
     scout_msgs::ScoutStatus msg;
     ScoutDriver::ScoutStatus scout_status = scout_->getScoutStatus();
 
     msg.header.stamp = ros::Time::now();
     msg.base_state = scout_status.base_state;
     msg.control_mode = scout_status.control_mode;
-    msg.fault_code = scout_status.fault_code;
+    msg.error_code = scout_status.error_code;
     msg.battery_voltage = scout_status.battery_voltage;
+
     msg.vx = scout_status.vx;
     msg.vth = scout_status.vth;
-
-    msg.light_control_enabled = scout_status.light_control_enabled;
-    msg.front_light_state.mode = scout_status.front_light_state.mode;
-    msg.front_light_state.custom_value = scout_status.front_light_state.custom_value;
-    msg.rear_light_state.mode = scout_status.rear_light_state.mode;
-    msg.rear_light_state.custom_value = scout_status.rear_light_state.custom_value;
 
     for(uint8_t i = 0; i < msg.motor_states.size(); i++)
     {
       msg.motor_states[i].id = scout_status.motor_states[i].id;
-      msg.motor_states[i].current = scout_status.motor_states[i].current;
       msg.motor_states[i].rpm = scout_status.motor_states[i].rpm;
-      msg.motor_states[i].temperature = scout_status.motor_states[i].temperature;
+      msg.motor_states[i].current = scout_status.motor_states[i].current;
+      msg.motor_states[i].encoder = scout_status.motor_states[i].encoder;
       msg.motor_states[i].motor_pose = scout_status.motor_states[i].motor_pose;
     }
+
+    for(uint8_t i = 0; i < msg.driver_states.size(); i++)
+    {
+      msg.driver_states[i].id = scout_status.driver_states[i].id;
+      msg.driver_states[i].driver_voltage = scout_status.driver_states[i].driver_voltage;
+      msg.driver_states[i].driver_temperature = scout_status.driver_states[i].driver_temperature;
+      msg.driver_states[i].motor_temperature = scout_status.driver_states[i].motor_temperature;
+      msg.driver_states[i].driver_state = scout_status.driver_states[i].driver_state;
+    }
+
+    msg.light_state.enable = scout_status.light_state.enable;
+    msg.light_state.front_light_mode = scout_status.light_state.front_light_mode;
+    msg.light_state.front_light_brightness = scout_status.light_state.front_light_brightness;
+    msg.light_state.rear_light_mode = scout_status.light_state.rear_light_mode;
+    msg.light_state.rear_light_brightness = scout_status.light_state.rear_light_brightness;
+
+    msg.odom.left_odom = scout_status.odom.left_odom;
+    msg.odom.right_odom = scout_status.odom.right_odom;
+
+    msg.version.controller_hw_version = scout_status.version.controller_hw_version;
+    msg.version.controller_sw_version = scout_status.version.controller_sw_version;
+    msg.version.driver_hw_version = scout_status.version.driver_hw_version;
+    msg.version.driver_sw_version = scout_status.version.driver_sw_version;
+
+    msg.teleop.swa = scout_status.teleop.swa;
+    msg.teleop.swb = scout_status.teleop.swb;
+    msg.teleop.swc = scout_status.teleop.swc;
+    msg.teleop.swd = scout_status.teleop.swd;
+    msg.teleop.right_rl_axis = scout_status.teleop.right_rl_axis;
+    msg.teleop.right_ud_axis = scout_status.teleop.right_ud_axis;
+    msg.teleop.left_ud_axis = scout_status.teleop.left_ud_axis;
+    msg.teleop.left_rl_axis = scout_status.teleop.left_rl_axis;
+    msg.teleop.left_vra = scout_status.teleop.left_vra;
+
+    msg.bms.soc = scout_status.bms.soc;
+    msg.bms.soh = scout_status.bms.soh;
+    msg.bms.voltage = scout_status.bms.voltage;
+    msg.bms.current = scout_status.bms.current;
+    msg.bms.temperature = scout_status.bms.temperature;
        
     scout_status_pub_.publish(msg);
-
-    // joints_[0].position = msg.motor_states[1].motor_pose; //front_left_wheel
-    // joints_[1].position = msg.motor_states[0].motor_pose; //front_right_wheel
-    // joints_[2].position = msg.motor_states[2].motor_pose; //rear_left_wheel
-    // joints_[3].position = msg.motor_states[3].motor_pose; //rear_right_wheel
 
     static ros::Time now_time;
     static ros::Time last_time;
@@ -120,32 +147,37 @@ namespace scout_base
       return;
     last_time = now_time;
 
-    joints_[0].velocity = (msg.motor_states[1].rpm / 1920.0) * 3.1415926 * 2; //front_left_wheel
-    joints_[1].velocity = (msg.motor_states[0].rpm / 1920.0) * 3.1415926 * 2; //front_right_wheel
-    joints_[2].velocity = (msg.motor_states[2].rpm / 1920.0) * 3.1415926 * 2; //rear_left_wheel
-    joints_[3].velocity = (msg.motor_states[3].rpm / 1920.0) * 3.1415926 * 2; //rear_right_wheel
+    joints_[0].velocity = (scout_status.motor_states[3].rpm / (60.0 * REDUCTION_RATIO)) * 3.1415926 * 2; //front_left_wheel
+    joints_[1].velocity = (scout_status.motor_states[0].rpm / (60.0 * REDUCTION_RATIO)) * 3.1415926 * 2; //front_right_wheel
+    joints_[2].velocity = (scout_status.motor_states[2].rpm / (60.0 * REDUCTION_RATIO)) * 3.1415926 * 2; //rear_left_wheel
+    joints_[3].velocity = (scout_status.motor_states[1].rpm / (60.0 * REDUCTION_RATIO)) * 3.1415926 * 2; //rear_right_wheel
 
-    joints_[0].position += joints_[0].velocity*dt;
-    joints_[1].position += joints_[1].velocity*dt;
-    joints_[2].position += joints_[2].velocity*dt;
-    joints_[3].position += joints_[3].velocity*dt;
+    // joints_[0].position = scout_status.motor_states[3].motor_pose;
+    // joints_[1].position = scout_status.motor_states[0].motor_pose;
+    // joints_[2].position = scout_status.motor_states[2].motor_pose;
+    // joints_[3].position = scout_status.motor_states[1].motor_pose;
+
+    joints_[0].position += joints_[0].velocity * dt;
+    joints_[1].position += joints_[1].velocity * dt;
+    joints_[2].position += joints_[2].velocity * dt;
+    joints_[3].position += joints_[3].velocity * dt;
   }
 
   // Get latest velocity commands from ros_control via joint structure, and send to MCU
   void ScoutHardware::writeCommandsToHardware()
   {
-    float vx = (joints_[0].velocity_command + joints_[1].velocity_command)* WHEEL_RADIUS / 2.0;
-    float vth = (joints_[1].velocity_command - joints_[0].velocity_command)* WHEEL_RADIUS / WHEEL_BASE;
+    float vx = (joints_[0].velocity_command + joints_[1].velocity_command) * WHEEL_RADIUS / 2.0;
+    float vth = (joints_[1].velocity_command - joints_[0].velocity_command) * WHEEL_RADIUS * 0.5 / WHEEL_BASE;
     //std::cout << "vx:" << vx << "/n" << "vth:" << vth << std::endl;
     scout_->setSpeed(vx, vth);
   }
 
   void ScoutHardware::lightCmdCallBack(const scout_msgs::ScoutLightCmd::ConstPtr& msg)
   {
-    std::map<uint8_t, ScoutDriver::LIGHT_MODE> map = {{0x00, ScoutDriver::LIGHT_MODE::CONST_OFF},
-                                                      {0x01, ScoutDriver::LIGHT_MODE::CONST_ON},
-                                                      {0x02, ScoutDriver::LIGHT_MODE::BREATH},
-                                                      {0x03, ScoutDriver::LIGHT_MODE::CUSTOM}};
+    std::map<uint8_t, uint8_t> map = {{0x00, 0x00},
+                                      {0x01, 0x01},
+                                      {0x02, 0x02},
+                                      {0x03, 0x03}};
 
     if(msg->front_custom_value > 100 || msg->rear_custom_value > 100)
     {

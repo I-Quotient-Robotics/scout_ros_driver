@@ -1,0 +1,9 @@
+    uint8 swa
+    uint8 swb
+    uint8 swc
+    uint8 swd
+    float32 right_rl_axis
+    float32 right_ud_axis
+    float32 left_ud_axis
+    float32 left_rl_axis
+    float32 left_vra

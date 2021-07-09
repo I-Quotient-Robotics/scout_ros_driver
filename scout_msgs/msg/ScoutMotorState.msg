@@ -1,5 +1,5 @@
-uint8   id
-float64 current
-float64 rpm
-float64 temperature
+uint8 id
+float32 rpm
+float32 current
+int32 encoder
 float64 motor_pose

@@ -1,0 +1,4 @@
+string controller_hw_version
+string controller_sw_version
+string driver_hw_version
+string driver_sw_version

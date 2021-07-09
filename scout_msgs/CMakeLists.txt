@@ -12,11 +12,16 @@ find_package(catkin REQUIRED COMPONENTS
 
 add_message_files(
   FILES
+  ScoutLightCmd.msg
   ScoutStatus.msg
   ScoutMotorState.msg
-  ScoutLightState.msg
-  ScoutLightCmd.msg
   ScoutDriverState.msg
+  ScoutDriverState.msg
+  ScoutLightState.msg
+  ScoutOdom.msg
+  ScoutVersion.msg
+  ScoutTeleop.msg
+  ScoutBMS.msg
 )
 
 generate_messages(
