@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>scout_navigation</name>
+  <version>0.1.0</version>
+
+  <description>AgileX scout navigation</description>
+
+  <author email="lei.yan@iquotient-robot.com">QuartzYan</author>
+  <maintainer email="lei.yan@iquotient-robot.com">QuartzYan</maintainer>
+
+  <!-- LICENSE -->
+  <license>MIT</license>
+
+  <!-- DEPEND -->
+  <buildtool_depend>catkin</buildtool_depend>
+  <exec_depend>amcl</exec_depend>
+  <exec_depend>gmapping</exec_depend>
+  <exec_depend>move_base</exec_depend>
+  <exec_depend>map_server</exec_depend>
+  <exec_depend>dwa_local_planner</exec_depend>
+  <exec_depend>base_local_planner</exec_depend>
+
+  <export>
+  </export>
+</package>

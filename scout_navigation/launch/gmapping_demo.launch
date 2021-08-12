@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+  <!--- Run gmapping -->
+  <include file="$(find scout_navigation)/launch/include/gmapping.launch.xml">
+    <arg name="scan_topic" default="/scan"/>
+  </include>
+
+  <!--- Run Move Base -->
+  <include file="$(find scout_navigation)/launch/include/move_base.launch"/>
+  
+  <!--rviz display-->
+  <arg name="viz" default="false"/>
+  <group if="$(arg viz)">
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find scout_navigation)/rviz/mapping.rviz"/>
+  </group>
+  
+</launch>

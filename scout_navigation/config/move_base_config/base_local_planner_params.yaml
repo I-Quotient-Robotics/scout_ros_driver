@@ -1,0 +1,60 @@
+controller_frequency: 10.0          # 更新路径规划的频率
+recovery_behavior_enabled: false    # 复原行为使能
+clearing_rotation_allowed: false    # 清除旋转允许
+
+TrajectoryPlannerROS:
+   max_vel_x: 0.5                   # X方向最大速度
+   min_vel_x: 0.05                  # X方向最小速度
+   max_vel_y: 0.0                   # 差速轮机器人无Y方向速度，取0
+   min_vel_y: 0.0
+
+   min_in_place_vel_theta: 0.3      # 机器人最小原地旋转速度
+   escape_vel: -0.1                 # 机器人逃离速度，负值
+
+   acc_lim_x: 1.0                   # X方向最大线加速度
+   acc_lim_y: 0.0                   # 差速轮机器人无Y方向线加速度，取0
+   acc_lim_theta: 1.5               # 最大角加速度
+   
+   holonomic_robot: false           # 全向移动机器人使能
+
+   yaw_goal_tolerance: 0.1          # 目标方向误差
+   xy_goal_tolerance: 0.2           # 目标位置误差
+   latch_xy_goal_tolerance: false   # 锁定至多距离目标位置误差
+
+   pdist_scale: 0.75                # 全局路径规划和到达目的地之间权重，比gdist_scale大时，机器人倾向考虑全局路径规划
+   gdist_scale: 1.0                 # 到达目的地和全局路径规划之间权重，比pdist_scale大时，机器人倾向考虑到达目的地
+
+   meter_scoring: true              # 以米为单位
+
+   occdist_scale: 0.8               # 避开障碍物的权重
+   oscillation_reset_dist: 0.05     # 在振荡标志被清零前，机器人必须在出行多远。
+   publish_cost_grid_pc: true       # 是否使用cost_grid发布
+   prune_plan: true                 # 机器人行走1m后，结束动作。
+
+   sim_time: 2.0                    # 规划时需要考虑未来多长时间，结合dwa
+   sim_granularity: 0.025           # 给定轨迹的步长
+   angular_sim_granularity: 0.025   # 给定角度轨迹的弧长
+   vx_samples: 8                    # x方向速度的样本数
+   vy_samples: 0                    # 差速轮机器人无Y方向速度，取0
+   vtheta_samples: 20               # 角速度的样本数，默认为20
+   dwa: true                        # 模拟未来轨迹时是否使用动态窗口法
+
+DWAPlannerROS :
+   max_vel_x: 0.5                   # X方向最大速度
+   min_vel_x: 0.05                  # X方向最小速度
+   max_vel_y: 0.0                   # 差速轮机器人无Y方向速度，取0
+   min_vel_y: 0.0
+
+   acc_lim_x: 1.0                   # X方向最大线加速度
+   acc_lim_y: 0.0                   # 差速轮机器人无Y方向线加速度，取0
+   acc_lim_theta: 1.5               # 最大角加速度
+
+   max_trans_vel: 0.5
+   min_trans_vel: 0.1
+   max_rot_vel: 1.0
+   min_rot_vel: 0.2
+
+   # 目标容差参数
+   yaw_goal_tolerance: 0.1
+   xy_goal_tolerance: 0.2
+   Latch_xy_goal_tolerance: false

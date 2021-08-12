@@ -1,0 +1,9 @@
+local_costmap:
+  global_frame: odom                    # 使用odom框架作为global框架
+  robot_base_frame: base_footprint      # 机器人最底层框架
+  update_frequency: 10.0                 # 局部地图更新频率
+  publish_frequency: 5.0                # 发布频率
+  static_map: false                     # 是否为静态地图，一般为动态
+  rolling_window: true                  # 更新局部地图
+  width: 10.0                            # 更新的局部地图的X向长度
+  height: 10.0                           # 更新的局部地图的Y向长度
