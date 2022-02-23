@@ -41,7 +41,7 @@ TrajectoryPlannerROS:
 
 DWAPlannerROS :
    max_vel_x: 0.5                   # X方向最大速度
-   min_vel_x: 0.05                  # X方向最小速度
+   min_vel_x: -0.05                 # X方向最小速度
    max_vel_y: 0.0                   # 差速轮机器人无Y方向速度，取0
    min_vel_y: 0.0
 
