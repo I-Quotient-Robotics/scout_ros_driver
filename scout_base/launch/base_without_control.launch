@@ -15,7 +15,7 @@
   <!-- SCOUT harware driver -->
   <node pkg="scout_base" type="scout_base_node_without_control" name="scout_base_without_control" output="screen">
     <param name="scout_com" value="$(arg scout_port)"/>
-    <param name="enable_odom_tf" value="true" unless="$(arg enable_ekf)"/>
+    <param name="enable_odom_tf" value="false" if="$(arg enable_ekf)"/>
     <!--remap from="cmd_vel" to="/scout_velocity_controller/cmd_vel"/-->
     <!--remap from="odom" to="/scout_velocity_controller/odom"/-->
   </node>
