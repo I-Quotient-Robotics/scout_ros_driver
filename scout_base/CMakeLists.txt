@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   serial
   tf
   tf2_ros
+  can_msgs
 )
 
 find_package(Boost REQUIRED COMPONENTS system)
